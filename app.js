@@ -2,7 +2,30 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={products:[],filtered:[],cart:JSON.parse(localStorage.getItem('smartmart-cart')||'[]'),page:1,perPage:48,category:'All',search:'',sort:'default'};
 const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:Number(n)%1?2:0,maximumFractionDigits:2});
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function svg(name){const text=esc(name.length>22?name.slice(0,22)+'…':name);let hue=0;for(const c of name)hue=(hue+c.charCodeAt(0)*7)%360;return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="480"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="hsl(${hue},70%,92%)"/><stop offset="1" stop-color="hsl(${(hue+35)%360},65%,82%)"/></linearGradient></defs><rect width="600" height="480" fill="url(#g)"/><circle cx="300" cy="200" r="115" fill="white" opacity=".72"/><text x="300" y="205" text-anchor="middle" font-size="86">🛍️</text><text x="300" y="340" text-anchor="middle" font-family="Arial" font-size="28" font-weight="700" fill="#183b3a">${text}</text><text x="300" y="378" text-anchor="middle" font-family="Arial" font-size="18" fill="#42615f">Smart Mart</text></svg>`)};`}
+function svg(name){
+  const text=esc(name.length>22?name.slice(0,22)+'…':name);
+  let hue=0;
+
+  for(const c of name){
+    hue=(hue+c.charCodeAt(0)*7)%360;
+  }
+
+  const image=`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="480">
+    <defs>
+      <linearGradient id="g" x1="0" x2="1">
+        <stop stop-color="hsl(${hue},70%,92%)"/>
+        <stop offset="1" stop-color="hsl(${(hue+35)%360},65%,82%)"/>
+      </linearGradient>
+    </defs>
+    <rect width="600" height="480" fill="url(#g)"/>
+    <circle cx="300" cy="200" r="115" fill="white" opacity=".72"/>
+    <text x="300" y="205" text-anchor="middle" font-size="86">🛍️</text>
+    <text x="300" y="340" text-anchor="middle" font-family="Arial" font-size="28" font-weight="700" fill="#183b3a">${text}</text>
+    <text x="300" y="378" text-anchor="middle" font-family="Arial" font-size="18" fill="#42615f">Smart Mart</text>
+  </svg>`;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(image)}`;
+}
 function save(){localStorage.setItem('smartmart-cart',JSON.stringify(state.cart));}
 function renderCategories(){const counts={All:state.products.length};for(const p of state.products){const c=(p.name.split(' - ')[0].trim()||'Other').split(' ')[0].toUpperCase();counts[c]=(counts[c]||0)+1;}const cats=['All',...Object.keys(counts).filter(x=>x!=='All').sort().slice(0,80)];$('#categories').innerHTML=cats.map(c=>`<button class="cat ${c===state.category?'active':''}" data-cat="${esc(c)}"><span>${esc(c)}</span><small>${counts[c]||0}</small></button>`).join('');$$('.cat').forEach(b=>b.onclick=()=>{state.category=b.dataset.cat;state.page=1;apply();});}
 function apply(){let a=[...state.products];if(state.search)a=a.filter(p=>p.name.toLowerCase().includes(state.search.toLowerCase()));if(state.category!=='All')a=a.filter(p=>(p.name.split(' - ')[0].trim().split(' ')[0]||'Other').toUpperCase()===state.category);if(state.sort==='low')a.sort((x,y)=>x.price-y.price);if(state.sort==='high')a.sort((x,y)=>y.price-x.price);if(state.sort==='az')a.sort((x,y)=>x.name.localeCompare(y.name));state.filtered=a;const pages=Math.max(1,Math.ceil(a.length/state.perPage));if(state.page>pages)state.page=pages;renderProducts();renderPagination(pages);$('#resultCount').textContent=`${a.length.toLocaleString('en-IN')} products`;$('#activeFilter').textContent=state.category!=='All'?` • ${state.category}`:'';renderCategories();}
