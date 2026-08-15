@@ -27,8 +27,80 @@ function svg(name){
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(image)}`;
 }
 function save(){localStorage.setItem('smartmart-cart',JSON.stringify(state.cart));}
-function renderCategories(){const counts={All:state.products.length};for(const p of state.products){const c=(p.name.split(' - ')[0].trim()||'Other').split(' ')[0].toUpperCase();counts[c]=(counts[c]||0)+1;}const cats=['All',...Object.keys(counts).filter(x=>x!=='All').sort().slice(0,80)];$('#categories').innerHTML=cats.map(c=>`<button class="cat ${c===state.category?'active':''}" data-cat="${esc(c)}"><span>${esc(c)}</span><small>${counts[c]||0}</small></button>`).join('');$$('.cat').forEach(b=>b.onclick=()=>{state.category=b.dataset.cat;state.page=1;apply();});}
-function apply(){let a=[...state.products];if(state.search)a=a.filter(p=>p.name.toLowerCase().includes(state.search.toLowerCase()));if(state.category!=='All')a=a.filter(p=>(p.name.split(' - ')[0].trim().split(' ')[0]||'Other').toUpperCase()===state.category);if(state.sort==='low')a.sort((x,y)=>x.price-y.price);if(state.sort==='high')a.sort((x,y)=>y.price-x.price);if(state.sort==='az')a.sort((x,y)=>x.name.localeCompare(y.name));state.filtered=a;const pages=Math.max(1,Math.ceil(a.length/state.perPage));if(state.page>pages)state.page=pages;renderProducts();renderPagination(pages);$('#resultCount').textContent=`${a.length.toLocaleString('en-IN')} products`;$('#activeFilter').textContent=state.category!=='All'?` • ${state.category}`:'';renderCategories();}
+function getCategory(name) {
+  const n = name.toUpperCase();
+
+  if (/AGARBATTI|GUGUL|GUGAL|GULAL|TURTI|PUJA|POOJA|CHANDAN|LOBAN|SANDAL/.test(n))
+    return 'Puja Items';
+
+  if (/BISCUIT|TOAST|WAFER|CHIPS|RUSK|COOKIES|SNACK|NAMKEEN/.test(n))
+    return 'Biscuits & Snacks';
+
+  if (/AKROD|WALNUT|BADAM|KAJU|KISHMISH|MAGAJ|DRY FRUIT/.test(n))
+    return 'Dry Fruits';
+
+  if (/DUDH|MILK|DAHI|CURD|PANEER|BASUNDI/.test(n))
+    return 'Dairy';
+
+  if (/FACEWASH|SHAMPOO|SOAP|TOOTH|BRUSH|PASTE|CREAM|LOTION|DIAPER|DEO|PERFUME/.test(n))
+    return 'Personal Care';
+
+  if (/CHOCOLATE|CANDY|TOFFEE|PEDHA|GULAB JAMUN|SWEET/.test(n))
+    return 'Sweets & Chocolates';
+
+  if (/JUICE|WATER|ENERGY|DRINK|COLD DRINK/.test(n))
+    return 'Beverages';
+
+  if (/BUCKET|MUG|CHALNI|PLASTIC|CONTAINER|DABBA|CLEANER|DETERGENT/.test(n))
+    return 'Home & Kitchen';
+
+  if (/AATA|ATTA|MAIDA|BESAN|POHA|RICE|DAL|MASALA|SUGAR|SALT|OIL|GHEE|AJWAN/.test(n))
+    return 'Grocery';
+
+  return 'Other';
+}
+
+function renderCategories() {
+  const counts = {};
+
+  for (const p of state.products) {
+    const c = getCategory(p.name);
+    counts[c] = (counts[c] || 0) + 1;
+  }
+
+  const order = [
+    'Grocery',
+    'Biscuits & Snacks',
+    'Dry Fruits',
+    'Dairy',
+    'Personal Care',
+    'Home & Kitchen',
+    'Puja Items',
+    'Beverages',
+    'Sweets & Chocolates',
+    'Other'
+  ];
+
+  const cats = order.filter(c => counts[c]);
+
+  $('#categories').innerHTML = cats.map(c => `
+    <button class="cat ${c === state.category ? 'active' : ''}" data-cat="${esc(c)}">
+      <span>${esc(c)}</span>
+      <small>${counts[c]}</small>
+    </button>
+  `).join('');
+
+  $$('.cat').forEach(b => {
+    b.onclick = () => {
+      state.category = b.dataset.cat;
+      state.page = 1;
+      apply();
+    };
+  });
+    }
+function apply(){let a=[...state.products];if(state.search)a=a.filter(p=>p.name.toLowerCase().includes(state.search.toLowerCase()));if(state.category !== 'All') {
+  a = a.filter(p => getCategory(p.name) === state.category);
+}
 function renderProducts(){const start=(state.page-1)*state.perPage;const arr=state.filtered.slice(start,start+state.perPage);$('#empty').classList.toggle('hidden',arr.length>0);$('#products').innerHTML=arr.map(p=>{const inCart=state.cart.find(x=>x.id===p.id)?.qty||0;return `<article class="card"><div class="pic"><img loading="lazy" src="${svg(p.name)}" alt="${esc(p.name)}"></div><div class="cardBody"><div class="productName" title="${esc(p.name)}">${esc(p.name)}</div><div class="price">${money(p.price)}</div><div class="cardActions"><button class="add ${inCart?'added':''}" data-id="${p.id}">${inCart?`✓ ${inCart} in cart`:'Add to cart'}</button></div></div></article>`}).join('');$$('.add').forEach(b=>b.onclick=()=>add(+b.dataset.id));}
 function renderPagination(pages){let s='';if(pages<=1){$('#pagination').innerHTML='';return;}for(let i=1;i<=pages;i++){if(i>7&&i<pages-2)continue;if(i===8)s+='<span>…</span>';s+=`<button class="page ${i===state.page?'active':''}" data-p="${i}">${i}</button>`;}$('#pagination').innerHTML=s;$$('.page').forEach(b=>b.onclick=()=>{state.page=+b.dataset.p;renderProducts();renderPagination(pages);window.scrollTo({top:520,behavior:'smooth'});});}
 function add(id){const p=state.products.find(x=>x.id===id);if(!p)return;const x=state.cart.find(x=>x.id===id);if(x)x.qty++;else state.cart.push({id:p.id,name:p.name,price:p.price,qty:1});save();renderCart();renderProducts();}
