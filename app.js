@@ -101,7 +101,52 @@ function renderCategories() {
     };
   });
 }
-function apply(){let a=[...state.products];if(state.search)a=a.filter(p=>p.name.toLowerCase().includes(state.search.toLowerCase()));if(state.category !== 'All') { a = a.filter(p => getCategory(p.name) === state.category);}
+function apply(){
+  let a=[...state.products];
+
+  // Search
+  if(state.search){
+    const q=state.search.toLowerCase();
+    a=a.filter(p=>p.name.toLowerCase().includes(q));
+  }
+
+  // Category
+  if(state.category!=='All'){
+    a=a.filter(p=>getCategory(p.name)===state.category);
+  }
+
+  // Sort
+  if(state.sort==='low'){
+    a.sort((x,y)=>Number(x.price)-Number(y.price));
+  }
+
+  if(state.sort==='high'){
+    a.sort((x,y)=>Number(y.price)-Number(x.price));
+  }
+
+  if(state.sort==='az'){
+    a.sort((x,y)=>x.name.localeCompare(y.name));
+  }
+
+  state.filtered=a;
+
+  const pages=Math.max(1,Math.ceil(a.length/state.perPage));
+
+  if(state.page>pages){
+    state.page=pages;
+  }
+
+  renderProducts();
+  renderPagination(pages);
+
+  $('#resultCount').textContent=
+    `${a.length.toLocaleString('en-IN')} products`;
+
+  $('#activeFilter').textContent=
+    state.category!=='All' ? ` • ${state.category}` : '';
+
+  renderCategories();
+}
 function renderProducts(){const start=(state.page-1)*state.perPage;const arr=state.filtered.slice(start,start+state.perPage);$('#empty').classList.toggle('hidden',arr.length>0);$('#products').innerHTML=arr.map(p=>{const inCart=state.cart.find(x=>x.id===p.id)?.qty||0;return `<article class="card"><div class="pic"><img loading="lazy" src="${svg(p.name)}" alt="${esc(p.name)}"></div><div class="cardBody"><div class="productName" title="${esc(p.name)}">${esc(p.name)}</div><div class="price">${money(p.price)}</div><div class="cardActions"><button class="add ${inCart?'added':''}" data-id="${p.id}">${inCart?`✓ ${inCart} in cart`:'Add to cart'}</button></div></div></article>`}).join('');$$('.add').forEach(b=>b.onclick=()=>add(+b.dataset.id));}
 function renderPagination(pages){let s='';if(pages<=1){$('#pagination').innerHTML='';return;}for(let i=1;i<=pages;i++){if(i>7&&i<pages-2)continue;if(i===8)s+='<span>…</span>';s+=`<button class="page ${i===state.page?'active':''}" data-p="${i}">${i}</button>`;}$('#pagination').innerHTML=s;$$('.page').forEach(b=>b.onclick=()=>{state.page=+b.dataset.p;renderProducts();renderPagination(pages);window.scrollTo({top:520,behavior:'smooth'});});}
 function add(id){const p=state.products.find(x=>x.id===id);if(!p)return;const x=state.cart.find(x=>x.id===id);if(x)x.qty++;else state.cart.push({id:p.id,name:p.name,price:p.price,qty:1});save();renderCart();renderProducts();}
