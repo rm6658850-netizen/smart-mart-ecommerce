@@ -61,7 +61,9 @@ function getCategory(name) {
 }
 
 function renderCategories() {
-  const counts = {};
+  const counts = {
+    All: state.products.length
+  };
 
   for (const p of state.products) {
     const c = getCategory(p.name);
@@ -69,6 +71,7 @@ function renderCategories() {
   }
 
   const order = [
+    'All',
     'Grocery',
     'Biscuits & Snacks',
     'Dry Fruits',
@@ -81,12 +84,12 @@ function renderCategories() {
     'Other'
   ];
 
-  const cats = order.filter(c => counts[c]);
+  const cats = order.filter(c => c === 'All' || counts[c] > 0);
 
   $('#categories').innerHTML = cats.map(c => `
     <button class="cat ${c === state.category ? 'active' : ''}" data-cat="${esc(c)}">
       <span>${esc(c)}</span>
-      <small>${counts[c]}</small>
+      <small>${counts[c] || 0}</small>
     </button>
   `).join('');
 
@@ -97,10 +100,8 @@ function renderCategories() {
       apply();
     };
   });
-    }
-function apply(){let a=[...state.products];if(state.search)a=a.filter(p=>p.name.toLowerCase().includes(state.search.toLowerCase()));if(state.category !== 'All') {
-  a = a.filter(p => getCategory(p.name) === state.category);
 }
+function apply(){let a=[...state.products];if(state.search)a=a.filter(p=>p.name.toLowerCase().includes(state.search.toLowerCase()));if(state.category !== 'All') { a = a.filter(p => getCategory(p.name) === state.category);}
 function renderProducts(){const start=(state.page-1)*state.perPage;const arr=state.filtered.slice(start,start+state.perPage);$('#empty').classList.toggle('hidden',arr.length>0);$('#products').innerHTML=arr.map(p=>{const inCart=state.cart.find(x=>x.id===p.id)?.qty||0;return `<article class="card"><div class="pic"><img loading="lazy" src="${svg(p.name)}" alt="${esc(p.name)}"></div><div class="cardBody"><div class="productName" title="${esc(p.name)}">${esc(p.name)}</div><div class="price">${money(p.price)}</div><div class="cardActions"><button class="add ${inCart?'added':''}" data-id="${p.id}">${inCart?`✓ ${inCart} in cart`:'Add to cart'}</button></div></div></article>`}).join('');$$('.add').forEach(b=>b.onclick=()=>add(+b.dataset.id));}
 function renderPagination(pages){let s='';if(pages<=1){$('#pagination').innerHTML='';return;}for(let i=1;i<=pages;i++){if(i>7&&i<pages-2)continue;if(i===8)s+='<span>…</span>';s+=`<button class="page ${i===state.page?'active':''}" data-p="${i}">${i}</button>`;}$('#pagination').innerHTML=s;$$('.page').forEach(b=>b.onclick=()=>{state.page=+b.dataset.p;renderProducts();renderPagination(pages);window.scrollTo({top:520,behavior:'smooth'});});}
 function add(id){const p=state.products.find(x=>x.id===id);if(!p)return;const x=state.cart.find(x=>x.id===id);if(x)x.qty++;else state.cart.push({id:p.id,name:p.name,price:p.price,qty:1});save();renderCart();renderProducts();}
